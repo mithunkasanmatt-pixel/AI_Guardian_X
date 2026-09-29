@@ -1,0 +1,147 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                          String                    @id @default(cuid())
+  name                        String
+  email                       String                    @unique
+  passwordHash                String
+  securityEnrollmentCompleted Boolean                   @default(false)
+  accountStatus               String                    @default("ACTIVE") // ACTIVE | LOCKED | PENDING_ENROLLMENT
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+  typingProfile               TypingBehaviorProfile?
+  swipeProfile                SwipeBehaviorProfile?
+  biometricPressureProfile    BiometricPressureProfile?
+  webAuthnCredentials         WebAuthnCredential[]
+  authenticationAttempts      AuthenticationAttempt[]
+  auditLogs                   AuditLog[]
+  sessions                    Session[]
+  wallets                     Wallet[]
+}
+
+model TypingBehaviorProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sampleCount           Int      @default(2)
+  averageWpm            Float
+  averageTypingDuration Float
+  averageInterKeyTime   Float
+  typingVariance        Float
+  tolerance             Float    @default(25.0)
+  averageTypingSpeed    Float
+  averageKeyInterval    Float
+  averagePauseDuration  Float
+  backspaceRate         Float
+  consistencyScore      Float
+  timingPatternJson     String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model SwipeBehaviorProfile {
+  id                            String   @id @default(cuid())
+  userId                        String   @unique
+  user                          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sampleCount                   Int      @default(2)
+  averageDuration               Float
+  averageDistance               Float
+  averageVelocity               Float
+  directionProfile              String
+  variance                      Float
+  tolerance                     Float    @default(25.0)
+  gestureSequence               String
+  normalizedDistancePatternJson String
+  movementSpeedProfileJson      String
+  consistencyScore              Float
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+}
+
+model BiometricPressureProfile {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sampleCount             Int      @default(2)
+  averagePressure         Float
+  minimumPressure         Float
+  maximumPressure         Float
+  averagePressureDuration Float
+  pressureVariance        Float
+  tolerance               Float    @default(25.0)
+  sensorType              String   @default("PointerEvent_Hardware / Dev_Mock")
+  pressurePatternJson     String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model WebAuthnCredential {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String   @unique
+  publicKey    String
+  counter      BigInt   @default(0)
+  deviceType   String   @default("singleDevice")
+  transports   String?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+}
+
+model AuthenticationAttempt {
+  id                String   @id @default(cuid())
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  typingScore       Float?
+  swipeScore        Float?
+  pressureScore     Float?
+  biometricVerified Boolean  @default(false)
+  success           Boolean
+  userAgent         String?
+  ipAddress         String?
+  failureReason     String?
+  createdAt         DateTime @default(now())
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventType     String   // REGISTRATION | LOGIN_SUCCESS | LOGIN_FAILURE | TYPING_ENROLLMENT | SWIPE_ENROLLMENT | BIOMETRIC_ENROLLMENT | VERIFICATION_SUCCESS | VERIFICATION_FAILURE | APPLICATION_LOCKED | LOGOUT | PROFILE_REENROLLED
+  success       Boolean
+  failureReason String?
+  userAgent     String?
+  ipAddress     String?
+  metadataJson  String?
+  createdAt     DateTime @default(now())
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   // EVM | Solana | Bitcoin | Hardware | MultiSig
+  fileName  String?
+  fileData  String?
+  fileSize  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
