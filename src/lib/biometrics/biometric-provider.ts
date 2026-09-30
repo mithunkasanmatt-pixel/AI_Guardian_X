@@ -70,7 +70,7 @@ export class RealBiometricProvider implements BiometricProvider {
       isActive = true;
       startTime = performance.now();
       samples.length = 0;
-      const pressure = e.pressure > 0 ? e.pressure : 0.5; // fallback default touch pressure if binary sensor
+      const pressure = e.pressure > 0 ? e.pressure : 0;
       const sample = { pressure: Number(pressure.toFixed(4)), timestamp: startTime };
       samples.push(sample);
       onSample(sample);
@@ -79,7 +79,7 @@ export class RealBiometricProvider implements BiometricProvider {
     const handlePointerMove = (e: PointerEvent) => {
       if (!isActive) return;
       const now = performance.now();
-      const pressure = e.pressure > 0 ? e.pressure : 0.5;
+      const pressure = e.pressure > 0 ? e.pressure : 0;
       const sample = { pressure: Number(pressure.toFixed(4)), timestamp: now };
       samples.push(sample);
       onSample(sample);

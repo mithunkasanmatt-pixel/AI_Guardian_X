@@ -34,6 +34,22 @@ export function SwipeEnrollmentCard({ onSuccessRedirect = "/register/biometric",
   const padRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Responsive canvas size handler
+  useEffect(() => {
+    const pad = padRef.current;
+    const canvas = canvasRef.current;
+    if (!pad || !canvas) return;
+
+    const updateCanvasSize = () => {
+      canvas.width = pad.clientWidth;
+      canvas.height = pad.clientHeight;
+    };
+
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+    return () => window.removeEventListener("resize", updateCanvasSize);
+  }, []);
+
   // Clear or redraw canvas line when points change
   useEffect(() => {
     const canvas = canvasRef.current;

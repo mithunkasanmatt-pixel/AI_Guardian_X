@@ -19,7 +19,10 @@ interface TypingEnrollmentCardProps {
 
 export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", onSuccess }: TypingEnrollmentCardProps) {
   const router = useRouter();
-  const targetText = APP_CONFIG.defaultTypingSentence;
+
+  // Requirement 2: Use different texts for Attempt 1 and Attempt 2
+  const sentenceAttempt1 = APP_CONFIG.typingSentences[0] || "The quick brown fox jumps over the lazy dog.";
+  const sentenceAttempt2 = APP_CONFIG.typingSentences[1] || "Pack my box with five dozen liquor jugs.";
 
   const [currentAttemptNum, setCurrentAttemptNum] = useState<1 | 2>(1);
   const [typedText, setTypedText] = useState("");
@@ -33,13 +36,14 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input on mount
+  const targetText = currentAttemptNum === 1 ? sentenceAttempt1 : sentenceAttempt2;
+
+  // Focus input on mount or attempt change
   useEffect(() => {
     inputRef.current?.focus();
   }, [currentAttemptNum]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Ignore modifier keys alone
     if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(e.key)) return;
 
     const newEvent: KeystrokeEvent = {
@@ -55,7 +59,6 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
   const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const now = performance.now();
     setKeystrokes((prev) => {
-      // Find matching keydown from end
       for (let i = prev.length - 1; i >= 0; i--) {
         if (prev[i].key === e.key && !prev[i].upTime) {
           const updated = [...prev];
@@ -71,7 +74,7 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
     const val = e.target.value;
     setTypedText(val);
 
-    // When sentence is typed completely
+    // When the sentence for current attempt is typed completely
     if (val === targetText) {
       const features = analyzeKeystrokes(keystrokes, targetText);
 
@@ -140,37 +143,39 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
   const progressPercent = Math.min(100, Math.round((typedText.length / targetText.length) * 100));
 
   return (
-    <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-slate-800 shadow-xl">
-      <CardHeader className="text-center pb-4">
+    <Card className="w-full max-w-2xl mx-auto border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+      <CardHeader className="text-center pb-4 px-4 sm:px-6">
         <div className="mx-auto h-12 w-12 rounded-xl bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-2">
           <Keyboard className="h-6 w-6" />
         </div>
-        <CardTitle className="text-2xl font-bold">Typing Speed Enrollment</CardTitle>
-        <CardDescription>
-          Type the target sentence <span className="font-semibold text-slate-800 dark:text-slate-200">two times</span> at your natural typing speed to build your unique behavioral profile.
+        <CardTitle className="text-xl sm:text-2xl font-bold">Typing Speed Enrollment</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">
+          Type the <span className="font-semibold text-slate-800 dark:text-slate-200">2 different sentences</span> shown below at your natural typing speed to build your reference profile.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5 px-4 sm:px-6">
         {/* Progress header & Attempts indicator */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center space-x-2">
-            <Badge variant={attempt1Features ? "success" : currentAttemptNum === 1 ? "default" : "secondary"}>
+            <Badge variant={attempt1Features ? "success" : currentAttemptNum === 1 ? "default" : "secondary"} className="text-xs">
               Attempt 1 {attempt1Features && "✓"}
             </Badge>
-            <Badge variant={attempt2Features ? "success" : currentAttemptNum === 2 ? "default" : "secondary"}>
+            <Badge variant={attempt2Features ? "success" : currentAttemptNum === 2 ? "default" : "secondary"} className="text-xs">
               Attempt 2 {attempt2Features && "✓"}
             </Badge>
           </div>
           <span className="text-xs font-semibold text-slate-500">
-            Step {currentAttemptNum} of 2
+            Step {currentAttemptNum} of 2 (Different Text)
           </span>
         </div>
 
         {/* Target Sentence Box */}
-        <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 relative">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Target Sentence to Type</p>
-          <p className="text-lg font-mono font-medium text-slate-800 dark:text-slate-100 tracking-wide select-none">
+        <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 relative">
+          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">
+            Target Sentence for Attempt {currentAttemptNum}
+          </p>
+          <p className="text-base sm:text-lg font-mono font-medium text-slate-800 dark:text-slate-100 tracking-wide select-none break-words">
             "{targetText}"
           </p>
         </div>
@@ -194,7 +199,7 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
-              className="w-full h-12 px-4 font-mono text-base rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900 dark:text-slate-100 disabled:opacity-50"
+              className="w-full h-12 px-3.5 sm:px-4 font-mono text-sm sm:text-base rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900 dark:text-slate-100 disabled:opacity-50"
             />
           </div>
           <Progress value={progressPercent} className="h-1.5 mt-2" />
@@ -202,18 +207,18 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
 
         {/* Attempt 1 Summary metrics if captured */}
         {attempt1Features && (
-          <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-3.5 rounded-lg border border-indigo-100 dark:border-indigo-900/40 grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/40 grid grid-cols-3 gap-1.5 text-center text-xs">
             <div>
-              <p className="text-slate-500">Attempt 1 Speed</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{attempt1Features.averageTypingSpeedCPM} CPM</p>
+              <p className="text-slate-500 text-[11px]">Attempt 1 Speed</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">{attempt1Features.averageTypingSpeedCPM} CPM</p>
             </div>
             <div>
-              <p className="text-slate-500">Key Interval</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{attempt1Features.averageKeyIntervalMs} ms</p>
+              <p className="text-slate-500 text-[11px]">Key Interval</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">{attempt1Features.averageKeyIntervalMs} ms</p>
             </div>
             <div>
-              <p className="text-slate-500">Consistency</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{attempt1Features.consistencyScore}%</p>
+              <p className="text-slate-500 text-[11px]">Consistency</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">{attempt1Features.consistencyScore}%</p>
             </div>
           </div>
         )}
@@ -223,7 +228,7 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Enrollment Attention Needed</AlertTitle>
-            <AlertDescription>{errorMsg}</AlertDescription>
+            <AlertDescription className="text-xs">{errorMsg}</AlertDescription>
           </Alert>
         )}
 
@@ -236,14 +241,14 @@ export function TypingEnrollmentCard({ onSuccessRedirect = "/register/swipe", on
         )}
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
-        <Button variant="outline" size="sm" onClick={handleReset} disabled={isSubmitting}>
+      <CardFooter className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 px-4 sm:px-6">
+        <Button variant="outline" size="sm" onClick={handleReset} disabled={isSubmitting} className="text-xs">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
           Reset Attempts
         </Button>
 
         {attemptStatus === "inconsistent" && (
-          <Button size="sm" onClick={handleReset}>
+          <Button size="sm" onClick={handleReset} className="text-xs">
             Retry Enrollment
           </Button>
         )}

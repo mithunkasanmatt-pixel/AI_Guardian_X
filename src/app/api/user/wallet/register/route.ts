@@ -11,12 +11,13 @@ import { logAuditEvent } from "@/lib/security/audit-logger";
 const walletRegistrationSchema = z.object({
   name: z.string().min(2, "Wallet Name must be at least 2 characters"),
   type: z.string().min(1, "Wallet Type is required"),
-  fileName: z.string().optional(),
+  fileName: z.string().min(1, "Wallet File is required"),
   fileData: z.string().optional(),
   fileSize: z.number().optional(),
   typingAttempt: z.any().optional(),
   swipeAttempt: z.any().optional(),
   pressureAttempt: z.any().optional(),
+  terminateSession: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {
@@ -30,6 +31,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+
+    // If client requested session termination due to 3 failed attempts
+    if (body.terminateSession) {
+      await clearSessionCookie();
+      await clearFlowState();
+      await logAuditEvent({
+        userId: sessionUser.userId,
+        eventType: "VERIFICATION_FAILURE",
+        success: false,
+        failureReason: "Wallet verification failed 3 consecutive times. Session terminated.",
+      });
+      return NextResponse.json({
+        success: false,
+        terminateSession: true,
+        error: "3 failed verification attempts reached. Session terminated.",
+      });
+    }
+
     const parsed = walletRegistrationSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -40,6 +59,17 @@ export async function POST(req: Request) {
     }
 
     const { name, type, fileName, fileData, fileSize, typingAttempt, swipeAttempt, pressureAttempt } = parsed.data;
+
+    // Requirement 8: Validate file extension (PDF and DOC/DOCX files only)
+    const lowerFileName = fileName.toLowerCase();
+    const isValidFileType = lowerFileName.endsWith(".pdf") || lowerFileName.endsWith(".doc") || lowerFileName.endsWith(".docx");
+
+    if (!isValidFileType) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only PDF and DOC/DOCX files are allowed." },
+        { status: 400 }
+      );
+    }
 
     // Fetch user with enrolled behavioral profiles
     const user = await prisma.user.findUnique({
@@ -53,14 +83,14 @@ export async function POST(req: Request) {
 
     if (!user || !user.typingProfile || !user.swipeProfile || !user.biometricPressureProfile) {
       return NextResponse.json(
-        { error: "Missing registered behavioral biometric profiles for this account." },
+        { error: "Missing registered behavioral biometric profiles for this account. Please register all 3 patterns on the Dashboard." },
         { status: 400 }
       );
     }
 
     if (!typingAttempt || !swipeAttempt || !pressureAttempt) {
       return NextResponse.json(
-        { error: "Complete behavioral capture (typing, swipe, pressure) is required before adding wallet." },
+        { error: "Complete behavioral biometric verification (typing, swipe, pressure) is required before creating wallet." },
         { status: 400 }
       );
     }
@@ -88,7 +118,7 @@ export async function POST(req: Request) {
           pressureScore: pressureMatch.similarityScore,
           biometricVerified: false,
           success: false,
-          failureReason: `Wallet registration behavioral mismatch (Typing: ${typingMatch.similarityScore}%, Swipe: ${swipeMatch.similarityScore}%, Pressure: ${pressureMatch.similarityScore}%)`,
+          failureReason: `Wallet creation pressure/biometric mismatch (Typing: ${typingMatch.similarityScore}%, Swipe: ${swipeMatch.similarityScore}%, Pressure: ${pressureMatch.similarityScore}%)`,
         },
       });
 
@@ -96,35 +126,42 @@ export async function POST(req: Request) {
         userId: user.id,
         eventType: "VERIFICATION_FAILURE",
         success: false,
-        failureReason: `Wallet registration behavioral mismatch`,
+        failureReason: `Wallet creation pressure/biometric mismatch`,
       });
 
-      // REQUIREMENT 3: Automatically terminate session and exit/redirect user
-      await clearSessionCookie();
-      await clearFlowState();
+      let failedStepMessage = "Verification failed.";
+      if (!pressureMatch.passed) {
+        failedStepMessage = "Finger pressure pattern does not match your reference pattern.";
+      } else if (!swipeMatch.passed) {
+        failedStepMessage = "Swipe pattern does not match your reference pattern.";
+      } else if (!typingMatch.passed) {
+        failedStepMessage = "Typing pattern does not match your reference pattern.";
+      }
 
       return NextResponse.json(
         {
-          error: "Wallet Registration Denied: Behavioral verification failed. Patterns did not match registered baseline. Session has been terminated.",
-          terminateSession: true,
+          success: false,
+          error: failedStepMessage,
           scores: {
             typing: typingMatch.similarityScore,
             swipe: swipeMatch.similarityScore,
             pressure: pressureMatch.similarityScore,
           },
         },
-        { status: 401 }
+        { status: 400 }
       );
     }
 
-    // All patterns matched! Store wallet information securely
+    // All patterns matched & file valid! Store wallet information in database
+    const safeFileData = fileData ? fileData.replace(/\0/g, "").slice(0, 1024) : undefined;
+
     const newWallet = await prisma.wallet.create({
       data: {
         userId: user.id,
         name,
         type,
-        fileName: fileName || "keystore-wallet.json",
-        fileData: fileData ? fileData.slice(0, 1024) : undefined, // Store payload excerpt securely
+        fileName: fileName,
+        fileData: safeFileData,
         fileSize: fileSize || (fileData ? fileData.length : 0),
       },
     });
@@ -149,7 +186,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Wallet "${name}" successfully authenticated and registered!`,
+      message: `Wallet "${name}" successfully verified and created!`,
       wallet: newWallet,
       scores: {
         typing: typingMatch.similarityScore,
@@ -160,7 +197,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Wallet Registration API Error:", err);
     return NextResponse.json(
-      { error: "Server error during wallet registration & behavioral verification." },
+      { error: "Server error during wallet creation & behavioral verification." },
       { status: 500 }
     );
   }
