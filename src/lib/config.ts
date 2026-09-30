@@ -9,6 +9,12 @@ export const APP_CONFIG = {
 
   // Predefined enrollment parameters
   defaultTypingSentence: "The quick brown fox jumps over the lazy dog.",
+  typingSentences: [
+    "The quick brown fox jumps over the lazy dog.",
+    "Pack my box with five dozen liquor jugs.",
+    "Sphinx of black quartz, judge my vow.",
+    "How vexingly quick waft zephyrs jump bright."
+  ],
   defaultSwipeSequence: ["Left", "Right", "Down", "Right"] as const,
 
   // Behavioral similarity thresholds (%)

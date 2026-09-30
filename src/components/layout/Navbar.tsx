@@ -45,7 +45,7 @@ export function Navbar({ user }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Brand */}
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center space-x-2.5">
+          <Link href={user ? "/dashboard" : "/login"} className="flex items-center space-x-2.5">
             <img src="/logo.png" alt="AI Guardian X Logo" className="h-9 w-9 rounded-lg shadow-md" />
             <div>
               <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">

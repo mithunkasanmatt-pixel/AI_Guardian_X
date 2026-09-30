@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { WalletSection } from "@/components/wallet/WalletSection";
 import { PatternRegistrationPanel } from "@/components/dashboard/PatternRegistrationPanel";
+import { LogoutButton } from "@/components/dashboard/LogoutButton";
 
 export default async function DashboardPage() {
   // Check application lock state
@@ -86,22 +87,23 @@ export default async function DashboardPage() {
           <p className="text-indigo-200 text-sm">{user.email}</p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Link href="/security">
-            <Button variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white/20 gap-1.5">
+            <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/20 gap-1.5 text-xs sm:text-sm">
               <Activity className="h-4 w-4" /> Audit Log
             </Button>
           </Link>
           <Link href="/settings">
-            <Button className="bg-indigo-600 hover:bg-indigo-500 text-white gap-1.5">
-              <Settings className="h-4 w-4" /> Security Settings
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white gap-1.5 text-xs sm:text-sm">
+              <Settings className="h-4 w-4" /> Settings
             </Button>
           </Link>
+          <LogoutButton />
         </div>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="border border-slate-200 dark:border-slate-800 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-500">Security Platform</CardTitle>

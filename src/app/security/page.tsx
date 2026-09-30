@@ -99,7 +99,7 @@ export default async function SecurityPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {user.authenticationAttempts.map((attempt) => (
                   <tr key={attempt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                    <td className="p-3 font-mono text-[11px] whitespace-nowrap">
+                    <td className="p-3 font-mono text-[11px] whitespace-nowrap" suppressHydrationWarning>
                       {new Date(attempt.createdAt).toLocaleString()}
                     </td>
                     <td className="p-3 whitespace-nowrap">
